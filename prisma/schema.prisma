@@ -17,7 +17,7 @@ model PayLinkToken {
   tokenHash  String    @unique
   amount     Int
   orderName  String
-  orderId    String // 쇼핑몰에서 넘어온 주문번호 저장
+  orderId    String    @unique // 쇼핑몰에서 넘어온 주문번호 저장
   orderItems String // ✅ 주문 항목들 (콤마/하이픈 등으로 join한 문자열)
   used       Boolean   @default(false)
   usedAt     DateTime?

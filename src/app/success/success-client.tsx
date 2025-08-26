@@ -37,7 +37,9 @@ export default function SuccessClient() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ paymentKey, orderId, amount }),
         });
+
         const json = await res.json();
+        console.log("/api/confirm response", json);
         if (!res.ok) {
           const e = json as ConfirmErr;
           router.replace(`/fail?code=${encodeURIComponent(e.code)}&message=${encodeURIComponent(e.message)}`);

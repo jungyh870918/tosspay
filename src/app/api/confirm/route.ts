@@ -10,9 +10,10 @@ export async function POST(req: NextRequest) {
             return Response.json({ message: 'invalid params' }, { status: 400 });
         }
 
+        console.log('Confirming payment:', { paymentKey, orderId, amount });
         // 🔍 토큰 레코드 유효성 검증
         const token = await prisma.payLinkToken.findUnique({
-            where: { id: orderId },
+            where: { orderId: orderId },
             select: {
                 id: true,
                 used: true,
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
                 orderItems: true,
             },
         });
-
+        console.log('Found token:', token);
         if (!token)
             return Response.json({ message: 'token not found' }, { status: 404 });
         if (token.used)
@@ -56,14 +57,17 @@ export async function POST(req: NextRequest) {
         });
 
         const json = await tossRes.json();
+
         if (!tossRes.ok) return Response.json(json, { status: 400 });
 
+        console.log('Toss Payments confirm response:', json);
         // 🔒 토큰 소모 처리
         await prisma.payLinkToken.update({
             where: { id: orderId },
             data: { used: true, usedAt: new Date() },
         });
 
+        console.log('Token marked as used:', orderId);
         // 📨 응답: 토스 승인 + DB 정보 함께 반환
         return Response.json({
             ok: true,
