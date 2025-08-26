@@ -4,7 +4,14 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
-type ConfirmOK = { orderId: string; approvedAt: string; totalAmount: number };
+type ConfirmOK = {
+  orderId: string;
+  approvedAt: string;
+  totalAmount: number;
+  orderName: string;
+  orderItems: string; // DB에 문자열로 저장했으므로 string
+};
+
 type ConfirmErr = { message: string; code: string };
 
 export default function SuccessClient() {
@@ -47,10 +54,17 @@ export default function SuccessClient() {
   if (!data) return <div className="max-w-md mx-auto mt-10 p-4 border rounded">승인 처리 중...</div>;
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-4 border rounded">
+    <div className="max-w-md mx-auto mt-10 p-4 border rounded space-y-3">
       <h2 className="text-xl font-bold text-green-700">✅ 결제가 완료되었습니다!</h2>
-      <p className="mt-2">
+
+      <p>
         주문번호: <b>{data.orderId}</b>
+      </p>
+      <p>
+        주문명: <b>{data.orderName}</b>
+      </p>
+      <p>
+        주문항목: <b>{data.orderItems}</b>
       </p>
       <p>
         결제금액: <b>{data.totalAmount.toLocaleString()}원</b>

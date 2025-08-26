@@ -1,0 +1,28 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// prisma/schema.prisma
+model PayLinkToken {
+  id         String    @id @default(uuid()) // 내부용 ID
+  tokenHash  String    @unique
+  amount     Int
+  orderName  String
+  orderId    String // 쇼핑몰에서 넘어온 주문번호 저장
+  orderItems String // ✅ 주문 항목들 (콤마/하이픈 등으로 join한 문자열)
+  used       Boolean   @default(false)
+  usedAt     DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+
+  @@index([expiresAt])
+}

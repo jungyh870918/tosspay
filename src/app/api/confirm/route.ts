@@ -1,15 +1,47 @@
 // app/api/confirm/route.ts
 import { NextRequest } from 'next/server';
+import { prisma } from '@/db/prisma';
 
 export async function POST(req: NextRequest) {
     try {
         const { paymentKey, orderId, amount } = await req.json();
 
-        if (!paymentKey || !orderId || !amount) {
+        if (!paymentKey || !orderId || !Number.isFinite(amount)) {
             return Response.json({ message: 'invalid params' }, { status: 400 });
         }
 
-        // Toss Payments 결제 승인
+        // 🔍 토큰 레코드 유효성 검증
+        const token = await prisma.payLinkToken.findUnique({
+            where: { id: orderId },
+            select: {
+                id: true,
+                used: true,
+                amount: true,
+                expiresAt: true,
+                orderName: true,
+                orderItems: true,
+            },
+        });
+
+        if (!token)
+            return Response.json({ message: 'token not found' }, { status: 404 });
+        if (token.used)
+            return Response.json(
+                { message: 'already used', code: 'ALREADY_USED' },
+                { status: 409 },
+            );
+        if (token.expiresAt < new Date())
+            return Response.json(
+                { message: 'expired', code: 'EXPIRED' },
+                { status: 410 },
+            );
+        if (token.amount !== amount)
+            return Response.json(
+                { message: 'amount mismatch', code: 'AMOUNT_MISMATCH' },
+                { status: 409 },
+            );
+
+        // ✅ Toss 승인 API 호출
         const url = 'https://api.tosspayments.com/v1/payments/confirm';
         const secretKey = process.env.TOSS_SECRET_KEY!;
         const basic = Buffer.from(`${secretKey}:`).toString('base64');
@@ -24,19 +56,27 @@ export async function POST(req: NextRequest) {
         });
 
         const json = await tossRes.json();
+        if (!tossRes.ok) return Response.json(json, { status: 400 });
 
-        if (!tossRes.ok) {
-            // { code, message } 형태로 반환됨
-            return Response.json(json, { status: 400 });
-        }
+        // 🔒 토큰 소모 처리
+        await prisma.payLinkToken.update({
+            where: { id: orderId },
+            data: { used: true, usedAt: new Date() },
+        });
 
-        // 필요한 최소 응답만 반환
+        // 📨 응답: 토스 승인 + DB 정보 함께 반환
         return Response.json({
+            ok: true,
             orderId: json.orderId,
             approvedAt: json.approvedAt,
             totalAmount: json.totalAmount,
+            orderName: token.orderName,
+            orderItems: token.orderItems,
         });
     } catch (e: any) {
-        return Response.json({ message: e?.message ?? 'server error' }, { status: 500 });
+        return Response.json(
+            { message: e?.message ?? 'server error' },
+            { status: 500 },
+        );
     }
 }
