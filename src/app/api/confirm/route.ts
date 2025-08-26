@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
         console.log('Toss Payments confirm response:', json);
         // 🔒 토큰 소모 처리
         await prisma.payLinkToken.update({
-            where: { id: orderId },
+            where: { orderId: orderId },
             data: { used: true, usedAt: new Date() },
         });
 
