@@ -69,6 +69,20 @@ export async function POST(req: NextRequest) {
 
         console.log('Token marked as used:', orderId);
         // 📨 응답: 토스 승인 + DB 정보 함께 반환
+        // const saveRes = await fetch('/api/payments/save-finished', {
+        //     method: 'POST',
+        //     headers: { 'Content-Type': 'application/json' },
+        //     body: JSON.stringify({
+        //         orderId,
+        //         paymentKey,
+        //         detail: json,
+        //     }),
+        // });
+
+        // if (!saveRes.ok) {
+        //     console.error('❌ 결제 정보 저장 실패:', await saveRes.text());
+        // }
+
         return Response.json({
             ok: true,
             orderId: json.orderId,
