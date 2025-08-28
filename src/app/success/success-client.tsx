@@ -1,7 +1,7 @@
 // app/success/success-client.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 type ConfirmOK = {
@@ -21,6 +21,16 @@ export default function SuccessClient() {
   const paymentKey = q.get("paymentKey");
   const orderId = q.get("orderId");
   const amount = Number(q.get("amount") ?? "0");
+
+  // ✅ from 쿼리 파싱 (지금은 보관만, 사용 X)
+  const from = useMemo(() => {
+    const raw = q.get("from");
+    return raw ? decodeURIComponent(raw.trim()) : null;
+  }, [q]);
+  // (원하면 확인용 로그)
+  // useEffect(() => {
+  //   if (from) console.log("[success] from:", from);
+  // }, [from]);
 
   const [data, setData] = useState<ConfirmOK | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -52,8 +62,12 @@ export default function SuccessClient() {
     })();
   }, [paymentKey, orderId, amount, router]);
 
-  if (err) return <div className="max-w-md mx-auto mt-10 p-4 border rounded text-red-600">{err}</div>;
-  if (!data) return <div className="max-w-md mx-auto mt-10 p-4 border rounded">승인 처리 중...</div>;
+  if (err) {
+    return <div className="max-w-md mx-auto mt-10 p-4 border rounded text-red-600">{err}</div>;
+  }
+  if (!data) {
+    return <div className="max-w-md mx-auto mt-10 p-4 border rounded">승인 처리 중...</div>;
+  }
 
   return (
     <div className="max-w-md mx-auto mt-10 p-4 border rounded space-y-3">
@@ -72,6 +86,13 @@ export default function SuccessClient() {
         결제금액: <b>{data.totalAmount.toLocaleString()}원</b>
       </p>
       <p className="text-sm text-gray-500 mt-1">승인시각: {data.approvedAt}</p>
+
+      {/* from 값을 화면에 노출하진 않지만, 필요시 아래처럼 확인용으로 보여줄 수 있어요.
+      {from && (
+        <p className="text-xs text-gray-400">
+          (from: {from})
+        </p>
+      )} */}
     </div>
   );
 }
