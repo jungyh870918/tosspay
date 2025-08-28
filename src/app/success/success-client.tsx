@@ -1,4 +1,3 @@
-// app/success/success-client.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -22,17 +21,15 @@ export default function SuccessClient() {
   const orderId = q.get("orderId");
   const amount = Number(q.get("amount") ?? "0");
 
-  // ✅ from(subdomain) 파싱 + 정규화(보안)
   const from = useMemo(() => {
     const raw = q.get("from");
     if (!raw) return null;
-    const trimmed = decodeURIComponent(raw.trim());
-    // 소문자/숫자/하이픈만 허용 (서브도메인 안전화)
-    const safe = trimmed.toLowerCase().replace(/[^a-z0-9-]/g, "");
+    const safe = decodeURIComponent(raw.trim())
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "");
     return safe || null;
   }, [q]);
 
-  // ✅ 쇼핑몰 대상 베이스 URL
   const mallBaseUrl = useMemo(() => {
     if (!from) return null;
     return `https://${from}.medipaysolution.co.kr`;
@@ -49,7 +46,6 @@ export default function SuccessClient() {
 
     (async () => {
       try {
-        // ✅ 1) 토스 결제 승인
         const res = await fetch("/api/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -67,24 +63,20 @@ export default function SuccessClient() {
           return;
         }
 
-        // ✅ 2) 쇼핑몰 서버에 결제완료 알림 (서브도메인 기반)
         if (mallBaseUrl) {
           try {
-            // await fetch(`http://localhost:3000/api/payments/save-finished`, {
             await fetch(`${mallBaseUrl}/api/payments/save-finished`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                orderId, // 쇼핑몰 주문 ID
-                paymentKey, // 토스 결제키
-                amount, // 금액(옵션)
-                detail: json, // 토스 confirm 응답 전문
-                // 필요하면 from도 같이 넘겨둘 수 있음
+                orderId,
+                paymentKey,
+                amount,
+                detail: json,
                 from,
               }),
             });
           } catch (e) {
-            // 네트워크/CORS 이슈 등은 콘솔로만 기록 (UI는 성공 기준 유지)
             console.error("save-finished 호출 실패:", e);
           }
         }
@@ -111,25 +103,46 @@ export default function SuccessClient() {
     );
   }
 
-  return (
-    <div className="max-w-md mx-auto mt-10 p-4 border rounded space-y-3">
-      <h2 className="text-xl font-bold text-green-700">
-        ✅ 결제가 완료되었습니다!
-      </h2>
+  const approvedDate = new Date(data.approvedAt).toISOString().split("T")[0];
 
-      <p>
-        주문번호: <b>{data.orderId}</b>
-      </p>
-      <p>
-        주문명: <b>{data.orderName}</b>
-      </p>
-      <p>
-        주문항목: <b>{data.orderItems}</b>
-      </p>
-      <p>
-        결제금액: <b>{data.totalAmount.toLocaleString()}원</b>
-      </p>
-      <p className="text-sm text-gray-500 mt-1">승인시각: {data.approvedAt}</p>
+  return (
+    <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+        {/* 상단 안내 배너 */}
+        <div className="bg-green-50 text-green-700 text-center py-2 border-b border-gray-200">
+          <h2 className="text-sm font-medium">결제가 완료되었습니다</h2>
+        </div>
+
+        {/* 본문 */}
+        <div className="p-6 space-y-4 text-sm text-gray-700">
+          <div className="flex justify-between">
+            <span className="text-gray-500">주문명</span>
+            <span className="font-medium">{data.orderName}</span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-gray-500">주문항목</span>
+            <span>{data.orderItems}</span>
+          </div>
+
+          <div className="flex justify-between border-t pt-4">
+            <span className="text-gray-500">결제금액</span>
+            <span className="font-semibold">
+              {data.totalAmount.toLocaleString()}원
+            </span>
+          </div>
+
+          <div className="flex justify-between border-t pt-3">
+            <span className="text-gray-500">승인일자</span>
+            <span>{approvedDate}</span>
+          </div>
+        </div>
+
+        {/* 하단 안내 */}
+        <div className="bg-gray-50 text-center text-xs text-gray-400 py-2 border-t">
+          본 안내는 {approvedDate} 기준으로 발급되었습니다.
+        </div>
+      </div>
     </div>
   );
 }
