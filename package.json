@@ -1,35 +1,39 @@
 {
-  "name": "pay-widget",
-  "version": "0.1.0",
-  "private": true,
+  "dependencies": {
+    "@neondatabase/serverless": "1.0.1",
+    "@prisma/adapter-neon": "6.14.0",
+    "@prisma/client": "6.14.0",
+    "@tosspayments/tosspayments-sdk": "2.3.6",
+    "next": "15.5.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "ws": "8.18.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "3.2.0",
+    "@tailwindcss/postcss": "4.0.3",
+    "@types/node": "20.12.14",
+    "@types/react": "19.0.2",
+    "@types/react-dom": "19.0.2",
+    "@types/ws": "8.18.1",
+    "eslint": "9.8.0",
+    "eslint-config-next": "15.5.0",
+    "prisma": "6.14.0",
+    "tailwindcss": "4.0.3",
+    "typescript": "5.5.4"
+  },
+  "overrides": {
+    "@prisma/client": "6.14.0",
+    "prisma": "6.14.0",
+    "@prisma/adapter-neon": "6.14.0",
+    "@prisma/driver-adapter-utils": "6.14.0"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "prisma generate && next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
-  },
-  "dependencies": {
-    "@neondatabase/serverless": "^1.0.1",
-    "@prisma/adapter-neon": "^6.14.0",
-    "@prisma/client": "^6.14.0",
-    "@tosspayments/tosspayments-sdk": "^2.3.6",
-    "next": "15.5.0",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "ws": "^8.18.3"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@types/ws": "^8.18.1",
-    "eslint": "^9",
-    "eslint-config-next": "15.5.0",
-    "prisma": "^6.14.0",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "postinstall": "prisma generate",
+    "prebuild": "npm ls @prisma/client && npm ls @prisma/adapter-neon && npm ls @prisma/driver-adapter-utils"
   }
 }
