@@ -22,7 +22,8 @@ export default function PayClient() {
   const [err, setErr] = useState<string | null>(null);
 
   const baseUrl = useMemo(() => {
-    if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
+    if (process.env.NEXT_PUBLIC_BASE_URL)
+      return process.env.NEXT_PUBLIC_BASE_URL;
     if (typeof window !== "undefined") return window.location.origin;
     return "";
   }, []);
@@ -35,7 +36,9 @@ export default function PayClient() {
     }
     (async () => {
       try {
-        const res = await fetch(`/api/paytoken/validate?token=${encodeURIComponent(token)}`);
+        const res = await fetch(
+          `/api/paytoken/validate?token=${encodeURIComponent(token)}`
+        );
         const json = await res.json();
         if (!res.ok || !json.ok) {
           setErr(json.message || "유효하지 않은 결제 링크입니다.");
@@ -52,10 +55,18 @@ export default function PayClient() {
   useEffect(() => {
     if (!orderInfo || !baseUrl) return;
     (async () => {
-      const tp = await loadTossPayments(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || "");
+      const tp = await loadTossPayments(
+        process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || ""
+      );
       const w = tp.widgets({ customerKey: ANONYMOUS });
       await w.setAmount({ currency: "KRW", value: orderInfo.amount });
-      await Promise.all([w.renderPaymentMethods({ selector: "#payment-method", variantKey: "DEFAULT" }), w.renderAgreement({ selector: "#agreement", variantKey: "AGREEMENT" })]);
+      await Promise.all([
+        w.renderPaymentMethods({
+          selector: "#payment-method",
+          variantKey: "DEFAULT",
+        }),
+        w.renderAgreement({ selector: "#agreement", variantKey: "AGREEMENT" }),
+      ]);
       setWidgets(w);
     })();
   }, [orderInfo, baseUrl]);
@@ -71,6 +82,8 @@ export default function PayClient() {
       successUrl.searchParams.set("from", from);
       failUrl.searchParams.set("from", from);
     }
+    console.log(successUrl.toString());
+    console.log(failUrl.toString());
 
     try {
       await widgets.requestPayment({
@@ -84,14 +97,25 @@ export default function PayClient() {
     }
   };
 
-  if (err) return <div className="max-w-md mx-auto mt-10 p-4 border rounded text-red-600">{err}</div>;
-  if (!orderInfo) return <div className="max-w-md mx-auto mt-10 p-4 border rounded">결제 정보를 불러오는 중...</div>;
+  if (err)
+    return (
+      <div className="max-w-md mx-auto mt-10 p-4 border rounded text-red-600">
+        {err}
+      </div>
+    );
+  if (!orderInfo)
+    return (
+      <div className="max-w-md mx-auto mt-10 p-4 border rounded">
+        결제 정보를 불러오는 중...
+      </div>
+    );
 
   return (
     <main className="max-w-md mx-auto p-4 mt-8 border rounded">
       <h1 className="text-xl font-semibold mb-2">결제</h1>
       <p className="text-sm mb-4">
-        주문번호: <b>{orderInfo.orderId}</b> / 금액: <b>{orderInfo.amount.toLocaleString()}원</b>
+        주문번호: <b>{orderInfo.orderId}</b> / 금액:{" "}
+        <b>{orderInfo.amount.toLocaleString()}원</b>
         <br />
         품목: <b>{orderInfo.orderItems}</b>
       </p>
@@ -99,7 +123,10 @@ export default function PayClient() {
       <div id="payment-method" className="mb-4" />
       <div id="agreement" />
 
-      <button onClick={onRequestPayment} className="mt-6 w-full rounded bg-black text-white py-3 text-sm">
+      <button
+        onClick={onRequestPayment}
+        className="mt-6 w-full rounded bg-black text-white py-3 text-sm"
+      >
         결제 진행하기
       </button>
     </main>
