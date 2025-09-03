@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
 
     const base = getBaseUrl(req);
     const payUrl = `${base}/pay?token=${encodeURIComponent(token)}`;
-    const qrUrl = `/api/paytoken/qr?token=${encodeURIComponent(
+    const qrUrl = `${base}/api/paytoken/qr?token=${encodeURIComponent(
       token
     )}&size=360&format=png`;
 
