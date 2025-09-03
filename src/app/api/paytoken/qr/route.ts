@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
   try {
     const sp = req.nextUrl.searchParams;
     const token = sp.get("token");
+    const from = sp.get("from");
     const format = (sp.get("format") || "png").toLowerCase();
     const size = Math.min(Number(sp.get("size") || 320), 1024);
     const margin = Number(sp.get("margin") || 2);
@@ -45,7 +46,9 @@ export async function GET(req: NextRequest) {
     }
 
     const base = getBaseUrl(req);
-    const payUrl = `${base}/pay?token=${encodeURIComponent(token)}`;
+    const payUrl = `${base}/pay?token=${encodeURIComponent(
+      token ?? ""
+    )}&from=${encodeURIComponent(from ?? "")}`;
 
     if (format === "svg") {
       const svg = await QRCode.toString(payUrl, {
@@ -130,7 +133,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log("from:", from);
     // 토큰 생성 & 해시 저장
     const token = createPlainToken();
     const tokenHash = hashToken(token);
@@ -157,7 +159,7 @@ export async function POST(req: NextRequest) {
     const qrUrl = `${base}/api/paytoken/qr?token=${encodeURIComponent(
       token
     )}&size=360&format=png${from ? `&from=${encodeURIComponent(from)}` : ""}`;
-
+    console.log("qrUrl:", qrUrl);
     return NextResponse.json({
       ok: true,
       token,
