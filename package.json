@@ -5,6 +5,7 @@
     "@prisma/client": "6.14.0",
     "@tosspayments/tosspayments-sdk": "2.3.6",
     "next": "15.5.0",
+    "qrcode": "^1.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "ws": "8.18.3"
@@ -13,6 +14,7 @@
     "@eslint/eslintrc": "3.2.0",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/node": "20.12.14",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "19.0.2",
     "@types/react-dom": "19.0.2",
     "@types/ws": "8.18.1",
