@@ -102,6 +102,8 @@ export async function GET(req: NextRequest) {
  * body: { amount, orderName, orderId, orderItems?, ttlMinutes? }
  * res:  { ok, token, payUrl, qrUrl, expiresAt }
  */
+// app/api/paytoken/qr/route.ts
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -111,12 +113,14 @@ export async function POST(req: NextRequest) {
       orderId,
       orderItems,
       ttlMinutes = 30,
+      from, // ✅ 쇼핑몰에서 보낸 서브도메인
     }: {
       amount: number;
       orderName: string;
       orderId: string;
       orderItems?: string[] | string;
       ttlMinutes?: number;
+      from?: string;
     } = body;
 
     if (!Number.isFinite(amount) || amount <= 0 || !orderName || !orderId) {
@@ -126,6 +130,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log("from:", from);
     // 토큰 생성 & 해시 저장
     const token = createPlainToken();
     const tokenHash = hashToken(token);
@@ -147,9 +152,11 @@ export async function POST(req: NextRequest) {
 
     const base = getBaseUrl(req);
     const payUrl = `${base}/pay?token=${encodeURIComponent(token)}`;
+
+    // ✅ from 값이 있으면 qrUrl 쿼리에 추가
     const qrUrl = `${base}/api/paytoken/qr?token=${encodeURIComponent(
       token
-    )}&size=360&format=png`;
+    )}&size=360&format=png${from ? `&from=${encodeURIComponent(from)}` : ""}`;
 
     return NextResponse.json({
       ok: true,
