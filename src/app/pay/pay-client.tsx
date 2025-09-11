@@ -5,25 +5,28 @@ import { useSearchParams } from "next/navigation";
 import { loadTossPayments, ANONYMOUS } from "@tosspayments/tosspayments-sdk";
 
 type OrderInfo = {
-  tokenId: string; // 내부 토큰 ID (UUID)
-  orderId: string; // 쇼핑몰 주문번호
+  tokenId: string;
+  orderId: string; // ← 내부적으로만 사용 (표시 X)
   amount: number;
   orderName: string;
   orderItems: string;
 };
 
+function formatKRW(n: number) {
+  return n.toLocaleString("ko-KR");
+}
+
 export default function PayClient() {
   const searchParams = useSearchParams();
-  const token = searchParams.get("token"); // 결제 토큰
-  const from = searchParams.get("from"); // ✅ 들어온 쿼리 유지용
+  const token = searchParams.get("token");
+  const from = searchParams.get("from");
 
   const [orderInfo, setOrderInfo] = useState<OrderInfo | null>(null);
   const [widgets, setWidgets] = useState<any>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const baseUrl = useMemo(() => {
-    if (process.env.NEXT_PUBLIC_BASE_URL)
-      return process.env.NEXT_PUBLIC_BASE_URL;
+    if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
     if (typeof window !== "undefined") return window.location.origin;
     return "";
   }, []);
@@ -36,9 +39,7 @@ export default function PayClient() {
     }
     (async () => {
       try {
-        const res = await fetch(
-          `/api/paytoken/validate?token=${encodeURIComponent(token)}`
-        );
+        const res = await fetch(`/api/paytoken/validate?token=${encodeURIComponent(token)}`);
         const json = await res.json();
         if (!res.ok || !json.ok) {
           setErr(json.message || "유효하지 않은 결제 링크입니다.");
@@ -55,18 +56,10 @@ export default function PayClient() {
   useEffect(() => {
     if (!orderInfo || !baseUrl) return;
     (async () => {
-      const tp = await loadTossPayments(
-        process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || ""
-      );
+      const tp = await loadTossPayments(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || "");
       const w = tp.widgets({ customerKey: ANONYMOUS });
       await w.setAmount({ currency: "KRW", value: orderInfo.amount });
-      await Promise.all([
-        w.renderPaymentMethods({
-          selector: "#payment-method",
-          variantKey: "DEFAULT",
-        }),
-        w.renderAgreement({ selector: "#agreement", variantKey: "AGREEMENT" }),
-      ]);
+      await Promise.all([w.renderPaymentMethods({ selector: "#payment-method", variantKey: "DEFAULT" }), w.renderAgreement({ selector: "#agreement", variantKey: "AGREEMENT" })]);
       setWidgets(w);
     })();
   }, [orderInfo, baseUrl]);
@@ -75,19 +68,16 @@ export default function PayClient() {
   const onRequestPayment = async () => {
     if (!widgets || !orderInfo) return;
 
-    // ✅ success/fail URL에 from 파라미터를 보존해서 전달
     const successUrl = new URL("/success", baseUrl);
     const failUrl = new URL("/fail", baseUrl);
     if (from) {
       successUrl.searchParams.set("from", from);
       failUrl.searchParams.set("from", from);
     }
-    console.log(successUrl.toString());
-    console.log(failUrl.toString());
 
     try {
       await widgets.requestPayment({
-        orderId: orderInfo.orderId,
+        orderId: orderInfo.orderId, // 서버 검증용으로만 사용
         orderName: orderInfo.orderName,
         successUrl: successUrl.toString(),
         failUrl: failUrl.toString(),
@@ -97,36 +87,33 @@ export default function PayClient() {
     }
   };
 
-  if (err)
-    return (
-      <div className="max-w-md mx-auto mt-10 p-4 border rounded text-red-600">
-        {err}
-      </div>
-    );
-  if (!orderInfo)
-    return (
-      <div className="max-w-md mx-auto mt-10 p-4 border rounded">
-        결제 정보를 불러오는 중...
-      </div>
-    );
+  if (err) return <div className="max-w-md mx-auto mt-10 p-4 border rounded text-red-600">{err}</div>;
+
+  if (!orderInfo) return <div className="max-w-md mx-auto mt-10 p-4 border rounded">결제 정보를 불러오는 중...</div>;
 
   return (
-    <main className="max-w-md mx-auto p-4 mt-8 border rounded">
-      <h1 className="text-xl font-semibold mb-2">결제</h1>
-      <p className="text-sm mb-4">
-        주문번호: <b>{orderInfo.orderId}</b> / 금액:{" "}
-        <b>{orderInfo.amount.toLocaleString()}원</b>
-        <br />
-        품목: <b>{orderInfo.orderItems}</b>
-      </p>
+    <main className="max-w-md mx-auto p-4 mt-8">
+      {/* 상단 결제 요약 카드 */}
+      <section className="mb-5 rounded-2xl border shadow-soft bg-white overflow-hidden">
+        <div className="px-5 pb-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs text-gray-500 mb-1">품목</p>
+              <p className="text-base font-medium text-gray-900 truncate">{orderInfo.orderItems}</p>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="text-xs text-gray-500 mb-1">결제 금액</p>
+              <p className="text-2xl font-semibold tracking-tight">₩ {formatKRW(orderInfo.amount)}</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
+      {/* 결제 수단 위젯 */}
       <div id="payment-method" className="mb-4" />
       <div id="agreement" />
 
-      <button
-        onClick={onRequestPayment}
-        className="mt-6 w-full rounded bg-black text-white py-3 text-sm"
-      >
+      <button onClick={onRequestPayment} className="mt-6 w-full rounded-xl bg-black text-white py-3 text-sm font-medium hover:bg-gray-900 active:scale-[0.99] transition">
         결제 진행하기
       </button>
     </main>
