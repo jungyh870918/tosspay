@@ -94,16 +94,21 @@ export default function PayClient() {
   return (
     <main className="max-w-md mx-auto p-4 mt-8">
       {/* 상단 결제 요약 카드 */}
-      <section className="mb-5 rounded-2xl border shadow-soft bg-white overflow-hidden">
-        <div className="px-5 pb-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+      {/* 상단 결제 요약 카드 */}
+      {/* 상단 결제 요약 카드 */}
+      <section className="mb-5 rounded-2xl border border-gray-200 shadow-soft bg-white overflow-hidden">
+        <div className="px-5 py-4">
+          <div className="flex items-center justify-between gap-3">
+            {/* 품목 */}
+            <div className="flex flex-col justify-center">
               <p className="text-xs text-gray-500 mb-1">품목</p>
-              <p className="text-base font-medium text-gray-900 truncate">{orderInfo.orderItems}</p>
+              <p className="text-base font-medium text-gray-900">{orderInfo.orderItems}</p>
             </div>
-            <div className="text-right shrink-0">
+
+            {/* 결제 금액 */}
+            <div className="flex flex-col justify-center text-right">
               <p className="text-xs text-gray-500 mb-1">결제 금액</p>
-              <p className="text-2xl font-semibold tracking-tight">₩ {formatKRW(orderInfo.amount)}</p>
+              <p className="text-base font-semibold text-gray-900">₩ {formatKRW(orderInfo.amount)}</p>
             </div>
           </div>
         </div>
