@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { loadTossPayments, ANONYMOUS } from "@tosspayments/tosspayments-sdk";
+import { getTossPublicKey } from "@/lib/tossKeys"; // 🔑 유틸 불러오기
 
 type OrderInfo = {
   tokenId: string;
-  orderId: string; // ← 내부적으로만 사용 (표시 X)
+  orderId: string; // 내부적으로만 사용 (표시 X)
   amount: number;
   orderName: string;
   orderItems: string;
@@ -19,7 +20,7 @@ function formatKRW(n: number) {
 export default function PayClient() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
-  const from = searchParams.get("from");
+  const from = searchParams.get("from"); // ✅ 서브도메인 값
 
   const [orderInfo, setOrderInfo] = useState<OrderInfo | null>(null);
   const [widgets, setWidgets] = useState<any>(null);
@@ -54,15 +55,25 @@ export default function PayClient() {
 
   // Toss 위젯 초기화
   useEffect(() => {
-    if (!orderInfo || !baseUrl) return;
+    if (!orderInfo || !baseUrl || !from) return;
     (async () => {
-      const tp = await loadTossPayments(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || "");
+      // ✅ from 값으로 공개키 가져오기
+      console.log("from:", from);
+      const clientKey = getTossPublicKey(from);
+      if (!clientKey) {
+        setErr(`해당 서브도메인(${from})에 대한 키를 찾을 수 없습니다.`);
+        return;
+      }
+
+      const tp = await loadTossPayments(clientKey);
       const w = tp.widgets({ customerKey: ANONYMOUS });
+
       await w.setAmount({ currency: "KRW", value: orderInfo.amount });
       await Promise.all([w.renderPaymentMethods({ selector: "#payment-method", variantKey: "DEFAULT" }), w.renderAgreement({ selector: "#agreement", variantKey: "AGREEMENT" })]);
+
       setWidgets(w);
     })();
-  }, [orderInfo, baseUrl]);
+  }, [orderInfo, baseUrl, from]);
 
   // 결제 요청
   const onRequestPayment = async () => {
@@ -88,14 +99,10 @@ export default function PayClient() {
   };
 
   if (err) return <div className="max-w-md mx-auto mt-10 p-4 border rounded text-red-600">{err}</div>;
-
   if (!orderInfo) return <div className="max-w-md mx-auto mt-10 p-4 border rounded">결제 정보를 불러오는 중...</div>;
 
   return (
     <main className="max-w-md mx-auto p-4 mt-8">
-      {/* 상단 결제 요약 카드 */}
-      {/* 상단 결제 요약 카드 */}
-      {/* 상단 결제 요약 카드 */}
       <section className="mb-5 rounded-2xl border border-gray-200 shadow-soft bg-white overflow-hidden">
         <div className="px-5 py-4">
           <div className="flex items-center justify-between gap-3">

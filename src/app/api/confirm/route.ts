@@ -1,19 +1,37 @@
 // app/api/confirm/route.ts
-import { NextRequest } from 'next/server';
-import { prisma } from '@/db/prisma';
+import { NextRequest } from "next/server";
+import { prisma } from "@/db/prisma";
+import { getTossSecretKey } from "@/lib/tossKeys"; // 🔑 서버 전용 유틸(시크릿 맵 파싱)
 
 export async function POST(req: NextRequest) {
     try {
-        const { paymentKey, orderId, amount } = await req.json();
+        const { paymentKey, orderId, amount, from } = await req.json();
 
+        // 기본 검증
         if (!paymentKey || !orderId || !Number.isFinite(amount)) {
-            return Response.json({ message: 'invalid params' }, { status: 400 });
+            return Response.json({ message: "invalid params" }, { status: 400 });
+        }
+        if (!from || typeof from !== "string") {
+            return Response.json(
+                { message: "missing 'from' (subdomain) param" },
+                { status: 400 }
+            );
         }
 
-        console.log('Confirming payment:', { paymentKey, orderId, amount });
-        // 🔍 토큰 레코드 유효성 검증
+        // 🗺️ 서브도메인별 시크릿키 로드
+        const secretKey = getTossSecretKey(from);
+        if (!secretKey) {
+            return Response.json(
+                { message: `secret key not found for subdomain '${from}'` },
+                { status: 400 }
+            );
+        }
+
+        console.log("Confirming payment:", { orderId, amount, from });
+
+        // 🔍 토큰 유효성 검증
         const token = await prisma.payLinkToken.findUnique({
-            where: { orderId: orderId },
+            where: { orderId },
             select: {
                 id: true,
                 used: true,
@@ -23,66 +41,55 @@ export async function POST(req: NextRequest) {
                 orderItems: true,
             },
         });
-        console.log('Found token:', token);
-        if (!token)
-            return Response.json({ message: 'token not found' }, { status: 404 });
-        if (token.used)
-            return Response.json(
-                { message: 'already used', code: 'ALREADY_USED' },
-                { status: 409 },
-            );
-        if (token.expiresAt < new Date())
-            return Response.json(
-                { message: 'expired', code: 'EXPIRED' },
-                { status: 410 },
-            );
-        if (token.amount !== amount)
-            return Response.json(
-                { message: 'amount mismatch', code: 'AMOUNT_MISMATCH' },
-                { status: 409 },
-            );
 
-        // ✅ Toss 승인 API 호출
-        const url = 'https://api.tosspayments.com/v1/payments/confirm';
-        const secretKey = process.env.TOSS_SECRET_KEY!;
-        const basic = Buffer.from(`${secretKey}:`).toString('base64');
+        if (!token) {
+            return Response.json({ message: "token not found" }, { status: 404 });
+        }
+        if (token.used) {
+            return Response.json(
+                { message: "already used", code: "ALREADY_USED" },
+                { status: 409 }
+            );
+        }
+        if (token.expiresAt < new Date()) {
+            return Response.json(
+                { message: "expired", code: "EXPIRED" },
+                { status: 410 }
+            );
+        }
+        if (token.amount !== amount) {
+            return Response.json(
+                { message: "amount mismatch", code: "AMOUNT_MISMATCH" },
+                { status: 409 }
+            );
+        }
+
+        // ✅ Toss 승인 API 호출 (서브도메인별 시크릿키 사용)
+        const url = "https://api.tosspayments.com/v1/payments/confirm";
+        const basic = Buffer.from(`${secretKey}:`).toString("base64");
 
         const tossRes = await fetch(url, {
-            method: 'POST',
+            method: "POST",
             headers: {
                 Authorization: `Basic ${basic}`,
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
             },
             body: JSON.stringify({ paymentKey, orderId, amount }),
         });
 
         const json = await tossRes.json();
+        if (!tossRes.ok) {
+            // 토스 응답 그대로 전달
+            return Response.json(json, { status: 400 });
+        }
 
-        if (!tossRes.ok) return Response.json(json, { status: 400 });
-
-        console.log('Toss Payments confirm response:', json);
         // 🔒 토큰 소모 처리
         await prisma.payLinkToken.update({
-            where: { orderId: orderId },
+            where: { orderId },
             data: { used: true, usedAt: new Date() },
         });
 
-        console.log('Token marked as used:', orderId);
-        // 📨 응답: 토스 승인 + DB 정보 함께 반환
-        // const saveRes = await fetch('/api/payments/save-finished', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify({
-        //         orderId,
-        //         paymentKey,
-        //         detail: json,
-        //     }),
-        // });
-
-        // if (!saveRes.ok) {
-        //     console.error('❌ 결제 정보 저장 실패:', await saveRes.text());
-        // }
-
+        // 📨 성공 응답
         return Response.json({
             ok: true,
             orderId: json.orderId,
@@ -93,8 +100,8 @@ export async function POST(req: NextRequest) {
         });
     } catch (e: any) {
         return Response.json(
-            { message: e?.message ?? 'server error' },
-            { status: 500 },
+            { message: e?.message ?? "server error" },
+            { status: 500 }
         );
     }
 }

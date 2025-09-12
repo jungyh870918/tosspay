@@ -49,17 +49,13 @@ export default function SuccessClient() {
         const res = await fetch("/api/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentKey, orderId, amount }),
+          body: JSON.stringify({ paymentKey, orderId, amount, from }),
         });
 
         const json = await res.json();
         if (!res.ok) {
           const e = json as ConfirmErr;
-          router.replace(
-            `/fail?code=${encodeURIComponent(
-              e.code
-            )}&message=${encodeURIComponent(e.message)}`
-          );
+          router.replace(`/fail?code=${encodeURIComponent(e.code)}&message=${encodeURIComponent(e.message)}`);
           return;
         }
 
@@ -89,18 +85,10 @@ export default function SuccessClient() {
   }, [paymentKey, orderId, amount, mallBaseUrl, from, router]);
 
   if (err) {
-    return (
-      <div className="max-w-md mx-auto mt-10 p-4 border rounded text-red-600">
-        {err}
-      </div>
-    );
+    return <div className="max-w-md mx-auto mt-10 p-4 border rounded text-red-600">{err}</div>;
   }
   if (!data) {
-    return (
-      <div className="max-w-md mx-auto mt-10 p-4 border rounded">
-        승인 처리 중...
-      </div>
-    );
+    return <div className="max-w-md mx-auto mt-10 p-4 border rounded">승인 처리 중...</div>;
   }
 
   const approvedDate = new Date(data.approvedAt).toISOString().split("T")[0];
@@ -127,9 +115,7 @@ export default function SuccessClient() {
 
           <div className="flex justify-between border-t pt-4">
             <span className="text-gray-500">결제금액</span>
-            <span className="font-semibold">
-              {data.totalAmount.toLocaleString()}원
-            </span>
+            <span className="font-semibold">{data.totalAmount.toLocaleString()}원</span>
           </div>
 
           <div className="flex justify-between border-t pt-3">
@@ -139,9 +125,7 @@ export default function SuccessClient() {
         </div>
 
         {/* 하단 안내 */}
-        <div className="bg-gray-50 text-center text-xs text-gray-400 py-2 border-t">
-          본 안내는 {approvedDate} 기준으로 발급되었습니다.
-        </div>
+        <div className="bg-gray-50 text-center text-xs text-gray-400 py-2 border-t">본 안내는 {approvedDate} 기준으로 발급되었습니다.</div>
       </div>
     </div>
   );
